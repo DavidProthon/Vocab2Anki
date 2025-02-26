@@ -17,12 +17,12 @@ from wordfreq import top_n_list
 # Number of most frequently occurring English words to extract from the document.
 # The words in the document are first identified, sorted by frequency,
 # and then the top `number_of_user_words` most common words are selected.
-number_of_user_words = 200
+number_of_user_words = 1200
 
 
 # The user selects a difficulty range for the extracted words.
 # Choose between: "A1", "A2", "B1", "B2", "C1", "C2", "C2+"
-lower_level = "B1"  # Minimum difficulty level
+lower_level = "B2"  # Minimum difficulty level
 upper_level = "B2" # Maximum difficulty level
 
 
