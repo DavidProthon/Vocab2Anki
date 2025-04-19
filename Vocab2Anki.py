@@ -11,35 +11,36 @@ import contractions
 import nltk
 import pdfplumber
 import spacy
+from spacy.lang.en import English
 from epub2txt import epub2txt
 from wordfreq import top_n_list
 
-# Number of most frequently occurring English words to extract from the document.
-# The words in the document are first identified, sorted by frequency,
-# and then the top `number_of_user_words` most common words are selected.
-number_of_user_words = 1200
+"""
+The application is intended for creating a file with Czech-English vocabulary in a format that allows importing into the ANKI application.
+As an input file, you can use a PDF or EPUB containing English text.
 
+First, the application loads the input file and splits the text into individual words, which it converts to their base forms.
+It then sorts them by frequency of occurrence, removes proper names and generally non-English words.
+The words are then classified by language level into "A1", "A2", "B1", "B2", "C1", "C2", and "C2+".
+Based on the user’s settings, it selects the number of words from certain language levels, adds translations and pronunciations 
+to these words, and creates a file named "ANKI_soubor.csv".
+If the user requests fewer words than are found in the input document, the application prioritizes words 
+with higher frequency in the input file.
+"""
+
+# The variable "number_of_user_words" indicates the number of most common words the user wishes to find.
+number_of_user_words = 200
 
 # The user selects a difficulty range for the extracted words.
 # Choose between: "A1", "A2", "B1", "B2", "C1", "C2", "C2+"
 lower_level = "B2"  # Minimum difficulty level
-upper_level = "B2" # Maximum difficulty level
-
-
-# This ensures that only words within the selected difficulty range are included.
-# Example:
-# If the user sets:
-# number_of_user_words = 500
-# lower_level = "B1"
-# upper_level = "B2"
-# 
-# The program will extract the 500 most frequently occurring words in the document 
-# that fall within the difficulty levels B1 to B2 (inclusive).
+upper_level = "B2" # Maximum difficulty level (inclusive)
 
 
 # Specifies which pronunciation variant to use for the extracted English words.
 # Choose between: "US" (American pronunciation) or "UK" (British pronunciation).
 pronunciation = "US"
+
 
 A1_WORDS = 500  # 500 real words
 A2_WORDS = 500  # 500 real words
@@ -65,7 +66,7 @@ def extract_text_from_epub(file_path: Path) -> str:
 
     return extracted_text
 
-def load_spacy_model(): 
+def load_spacy_model() -> English: 
     """
     Checks if the 'en_core_web_sm' model is downloaded, and if not, it downloads it.
     Returns the loaded spaCy model.
@@ -188,7 +189,7 @@ def assign_difficulty_level(word_dict: dict,word_levels: dict) -> dict:
 
     return copied_dict_of_words
 
-def get_user_levels(lower_level,upper_level):
+def get_user_levels(lower_level: str,upper_level: str) -> list: 
     levels = ["A1","A2","B1","B2","C1","C2","C2+"]
     user_choose = []
 
@@ -198,7 +199,7 @@ def get_user_levels(lower_level,upper_level):
 
     return user_choose
 
-def get_user_words(number_of_user_words,words_with_difficulty_levels,user_levels):
+def get_user_words(number_of_user_words: int, words_with_difficulty_levels: dict, user_levels: list) -> list: 
     '''
     Selects all levels between the given lower and upper levels (inclusive).
     '''
@@ -213,10 +214,10 @@ def get_user_words(number_of_user_words,words_with_difficulty_levels,user_levels
                 user_words.append(key)
         else:
             break
-            
+
     return user_words
 
-def retrieve_word_data(user_words, region ,database_path='data.db'):
+def retrieve_word_data(user_words: list, region: str ,database_path: str = 'data.db') -> list:
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row  
     cursor = connection.cursor()
@@ -238,30 +239,15 @@ def retrieve_word_data(user_words, region ,database_path='data.db'):
             extended_words.append([result["translation"], formatted_word])
     
     connection.close()
-    
+
     return extended_words
 
-"""
-def get_phonetic_transcription(translate_words):
-    result = []
-    phonemizer = Phonemizer.from_checkpoint("latin_ipa_forward.pt")
-    for cz_word, en_word in translate_words:
-        pronunciation = phonemizer(en_word, lang="en_us")
-        if pronunciation:
-            combined = f"{en_word} [{pronunciation}]"
-            result.append((cz_word, combined))
-        else:
-            result.append((cz_word, en_word))
-    
-    return result
-"""
-
-def words_to_csv(data):
+def words_to_csv(data: list) -> None:
     with open("ANKI_soubor.csv", mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerows(data)
 
-def main():
+def main() -> None:
     nlp = load_spacy_model()
     nltk.download("words")
     folder_path = Path("dokument")
@@ -294,7 +280,6 @@ def main():
         user_words = get_user_words(number_of_user_words,words_with_difficulty_levels,user_levels)
 
         all_necessary_data = retrieve_word_data(user_words,pronunciation)
-        #print(all_necessary_data)
 
         words_to_csv(all_necessary_data)
 
